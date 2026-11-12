@@ -2,6 +2,7 @@
 import { ATTRS, uid, normPublic, normPrivate } from '../data.js';
 import { auth, msgOf } from '../store.js';
 import { esc, IC, dieSel, autosize, autosizeAll, rnd, today, toast, say, resizeImage, pickFile, download, pinForm, themePicker } from '../ui.js';
+import { hit, lowHp, spinDice } from '../fx.js';
 
 const EDIT_ACTS = new Set(['delta', 'amt', 'pip', 'full', 'lvl', 'portrait', 'portrait-remove', 'ab-use', 'ab-edit', 'ab-save',
   'ab-add', 'ab-del', 'inv-add', 'inv-del', 'con-add', 'con-del', 'ses-add', 'ses-del', 'export', 'import', 'pin-change',
@@ -23,7 +24,7 @@ export async function mount(root, { slug }, ctx) {
   const ss = (k) => { try { return sessionStorage.getItem(`op2:${slug}:${k}`); } catch (e) { return null; } };
   const ssSet = (k, v) => { try { sessionStorage.setItem(`op2:${slug}:${k}`, v); } catch (e) { /* ok */ } };
   const ui = {
-    tab: ss('tab') || 'ficha', editAb: null, confirm: null, showUnlock: false, optPin: false, showColor: false,
+    tab: ss('tab') || 'ficha', editAb: null, confirm: null, showUnlock: false, optPin: false, showColor: false, anim: [], enter: true,
     dt: ss('dt') || '', rolls: (() => { try { return JSON.parse(ss('rolls') || '[]'); } catch (e) { return []; } })(),
   };
 
@@ -113,7 +114,12 @@ export async function mount(root, { slug }, ctx) {
     if (ev.type !== 'upsert' || pubDirty || savingPub) return;
     const incoming = normPublic(ev.row.data);
     if (JSON.stringify(incoming) === JSON.stringify(P)) return;
+    for (const k of ['pv', 'pd']) {
+      if (incoming[k].cur !== P[k].cur && incoming[k].max === P[k].max) ui.anim.push({ k, from: P[k].cur, to: incoming[k].cur });
+    }
+    const tookDmg = incoming.pv.cur < P.pv.cur;
     P = incoming; render();
+    if (tookDmg) hit(incoming.pv.cur === 0 ? 2 : 1);
   });
 
   // ---------------- views ----------------
@@ -124,7 +130,7 @@ export async function mount(root, { slug }, ctx) {
       }</button>${P.portrait ? '<button class="link ed" data-act="portrait-remove">' + (ui.confirm === 'portrait' ? 'confirmar?' : 'remover') + '</button>' : ''}</div>
       <div class="hero-main">
         <input class="name inl" data-bind="pub:name" style="--len:${Math.max(4, (P.name || '').length)}" value="${esc(P.name)}" placeholder="NOME" aria-label="Nome do personagem" spellcheck="false" autocomplete="off">
-        <div class="meta">
+        <div class="meta">${P.pv.cur <= 0 ? '<span class="dead-chip">Caído</span>' : ''}
           ${role || P.classe ? `<span class="tag"><input class="inl fit" data-bind="pub:classe" size="${sz(P.classe)}" value="${esc(P.classe)}" placeholder="CLASSE" aria-label="Classe" spellcheck="false"></span>
           <span class="dot">•</span>` : ''}
           ${role || P.ocupacao ? `<input class="inl meta-in fit" data-bind="pub:ocupacao" size="${sz(P.ocupacao)}" value="${esc(P.ocupacao)}" placeholder="OCUPAÇÃO" aria-label="Ocupação" spellcheck="false">
@@ -148,7 +154,13 @@ export async function mount(root, { slug }, ctx) {
   function res(key, label, verbs) {
     const r = P[key], low = r.cur <= Math.ceil(r.max * 0.25);
     let p = '';
-    for (let i = 0; i < r.max; i++) p += `<button class="pip${i < r.cur ? ' on' : ''}" data-act="pip" data-res="${key}" data-i="${i}" aria-label="${label} ${i + 1}"></button>`;
+    const an = ui.anim.find((a) => a.k === key);
+    for (let i = 0; i < r.max; i++) {
+      let fx = '', st = '';
+      if (an && an.to < an.from && i >= an.to && i < an.from) { fx = key === 'pd' ? ' snuff' : ' brk'; st = ` style="animation-delay:${(an.from - 1 - i) * 45}ms"`; }
+      if (an && an.to > an.from && i >= an.from && i < an.to) { fx = ' gain'; st = ` style="animation-delay:${(i - an.from) * 60}ms"`; }
+      p += `<button class="pip${i < r.cur ? ' on' : ''}${fx}"${st} data-act="pip" data-res="${key}" data-i="${i}" aria-label="${label} ${i + 1}"></button>`;
+    }
     return `<div class="res res-${key}${low ? ' low' : ''}">
       <div class="res-top"><span class="tag">${label}</span>
         <span class="res-num"><b>${r.cur}</b><small>/ <input type="number" class="maxin" data-max="${key}" min="1" max="99" value="${r.max}" aria-label="${label} máximo"></small></span></div>
@@ -193,7 +205,7 @@ export async function mount(root, { slug }, ctx) {
     }).join('');
     return `<section class="card"><div class="sec-h"><span class="tag">Habilidades</span></div>${list || '<p class="empty">Nenhuma habilidade ainda.</p>'}<button class="btn ghost add ed" data-act="ab-add">+ Nova habilidade</button></section>`;
   }
-  const face = (x) => `<span class="face" title="Rolou um d${x.d} e tirou ${x.v}"><small>d${x.d}</small><b>${x.v}</b></span>`;
+  const face = (x) => `<span class="face${x.d > 1 && x.v === x.d ? ' crit' : ''}${x.d > 1 && x.v === 1 ? ' fumble' : ''}" data-d="${x.d}" data-v="${x.v}" title="Rolou um d${x.d} e tirou ${x.v}"><small>d${x.d}</small><b>${x.v}</b></span>`;
   const pf = (r, big) => r.dt != null ? `<span class="pf ${r.ok ? 'ok' : 'no'}">${r.ok ? 'passou' : 'falhou'}${big ? ' · DT ' + r.dt : ''}</span>` : '';
   function rollsCard() {
     const tray = [4, 6, 8, 10, 12, 20].map((d) => `<button class="btn" data-act="roll-die" data-d="${d}">d${d}</button>`).join('');
@@ -287,7 +299,10 @@ export async function mount(root, { slug }, ctx) {
     const ae = document.activeElement, fk = focusKey(ae);
     let s0 = null, s1 = null; if (fk) { try { s0 = ae.selectionStart; s1 = ae.selectionEnd; } catch (e) { /* ok */ } }
     const body = ui.tab === 'historia' ? historiaView() : ui.tab === 'notas' ? notasView() : fichaView();
-    root.innerHTML = `<div class="sheet${role ? '' : ' locked'}">${hero()}${turnBanner()}${subnav()}${body}</div>`;
+    const dead = P.pv.cur <= 0;
+    root.innerHTML = `<div class="sheet${role ? '' : ' locked'}${ui.enter ? ' enter' : ''}${dead ? ' dead' : ''}">${hero()}${turnBanner()}${subnav()}${body}</div>`;
+    ui.enter = false; ui.anim = [];
+    lowHp(!dead && P.pv.cur <= Math.ceil(P.pv.max * 0.25));
     if (!role) root.querySelectorAll('.sheet input, .sheet select, .sheet textarea').forEach((el) => { if (el.id !== 'dt' && !el.closest('.pinf')) el.disabled = true; });
     autosizeAll(root);
     if (fk) { const n = root.querySelector(fk); if (n && !n.disabled) { try { n.focus({ preventScroll: true }); } catch (e) { n.focus(); } try { if (s0 != null) n.setSelectionRange(s0, s1); } catch (e) { /* ok */ } } }
@@ -305,7 +320,13 @@ export async function mount(root, { slug }, ctx) {
   }
   const commitPub = () => { savePub(); render(); };
   const commitPriv = () => { savePriv(); render(); };
-  const setRes = (k, v) => { const r = P[k]; r.cur = Math.max(0, Math.min(r.max, v)); commitPub(); };
+  const setRes = (k, v) => {
+    const r = P[k], from = r.cur;
+    r.cur = Math.max(0, Math.min(r.max, v));
+    if (r.cur !== from) ui.anim.push({ k, from, to: r.cur });
+    commitPub();
+    if (k === 'pv' && r.cur < from) hit(r.cur === 0 || from - r.cur >= 5 ? 2 : 1);
+  };
   const persistRolls = () => ssSet('rolls', JSON.stringify(ui.rolls));
   function doRoll(label, dice) {
     const res = dice.map((d) => ({ d, v: rnd(d) }));
@@ -314,6 +335,7 @@ export async function mount(root, { slug }, ctx) {
     const dt = parseInt(ui.dt, 10); if (!isNaN(dt) && dice.length > 1) { r.dt = dt; r.ok = sum >= dt; }
     ui.rolls.unshift(r); ui.rolls = ui.rolls.slice(0, 15); persistRolls(); render();
     toast(`<div class="t-l">${esc(label)}</div><div class="t-d">${res.map(face).join('')}</div>${res.length > 1 ? `<div class="t-s"><small>soma</small><b>${sum}</b></div>` : ''}${pf(r, true)}`);
+    spinDice(document.querySelector('.toast'));
   }
   const find = (arr, id) => arr.find((x) => x.id === id);
   const focusSel = (sel) => setTimeout(() => { const n = root.querySelector(sel); if (n) n.focus(); }, 0);
@@ -352,7 +374,7 @@ export async function mount(root, { slug }, ctx) {
       }
       case 'portrait-remove': confirmThen('portrait', () => { P.portrait = null; commitPub(); }); break;
       case 'ab-use': it = find(P.abilities, d.id);
-        if (it && P.pd.cur >= it.cost) { P.pd.cur -= it.cost; commitPub(); toast(`${esc(it.name)} · −${it.cost} PD`, { msg: true, ms: 2600 }); } break;
+        if (it && P.pd.cur >= it.cost) { setRes('pd', P.pd.cur - it.cost); toast(`${esc(it.name)} · −${it.cost} PD`, { msg: true, ms: 2600 }); } break;
       case 'ab-edit': ui.editAb = d.id; render(); focusSel('#ab-name'); break;
       case 'ab-cancel': {
         it = find(P.abilities, ui.editAb);
@@ -467,7 +489,7 @@ export async function mount(root, { slug }, ctx) {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => autosizeAll(root));
 
   return () => {
-    flushAll(); unsub(); unsubMesa(); clearTimeout(encT);
+    flushAll(); unsub(); unsubMesa(); clearTimeout(encT); lowHp(false);
     window.removeEventListener('pagehide', flushAll);
     window.removeEventListener('resize', onResize);
     root.removeEventListener('click', onClick); root.removeEventListener('submit', onSubmit);

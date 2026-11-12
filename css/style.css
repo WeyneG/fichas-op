@@ -612,3 +612,119 @@ body.tv-mode .wrap{max-width:none;padding:0}
 .tv-exit{color:var(--faint);text-decoration:none;opacity:0;transition:opacity .2s}
 .tv:hover .tv-exit{opacity:1}
 @media (max-aspect-ratio:1/1){.tv-combat{grid-template-columns:1fr}.tv-party{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}.tv{height:auto;min-height:100vh}}
+
+/* =====================================================================
+   EFEITOS VISUAIS (só valem com body.fx — botão ✦ no topo liga/desliga)
+   ===================================================================== */
+.fxbtn{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:var(--faint);cursor:pointer;flex:none;margin-left:6px}
+.fxbtn:hover{color:var(--text);border-color:var(--acc-hi)}
+.fxbtn[aria-pressed="true"]{color:var(--acc-text);border-color:var(--acc-dim)}
+.tabs + .fxbtn{margin-left:4px}
+
+/* poeira */
+.fx-dust{position:absolute;inset:0;width:100%;height:100%}
+
+/* transição entre páginas */
+.fx .view-out{animation:viewOut .17s ease-in forwards}
+.fx .view-in{animation:viewIn .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes viewOut{to{opacity:0;filter:blur(6px);transform:translateY(-4px)}}
+@keyframes viewIn{from{opacity:0;filter:blur(8px);transform:translateY(6px)}}
+
+/* entrada da ficha */
+.fx .sheet.enter .hero{animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both}
+.fx .sheet.enter .res-row .res,.fx .sheet.enter .grid>div>*,.fx .sheet.enter .paper,.fx .sheet.enter .stack>*{animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both}
+.fx .sheet.enter .res-row .res:nth-child(1){animation-delay:.06s}
+.fx .sheet.enter .res-row .res:nth-child(2){animation-delay:.12s}
+.fx .sheet.enter .grid>div>*:nth-child(1){animation-delay:.18s}
+.fx .sheet.enter .grid>div>*:nth-child(2){animation-delay:.26s}
+.fx .sheet.enter .grid>div>*:nth-child(3){animation-delay:.34s}
+.fx .sheet.enter .grid>div>*:nth-child(n+4){animation-delay:.42s}
+.fx .sheet.enter .tag{animation:tagIn .55s .25s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}}
+@keyframes tagIn{from{clip-path:polygon(0 10%,0 0,0 100%,0 90%);opacity:.3}to{clip-path:polygon(0 10%,100% 0,97% 100%,2% 90%)}}
+.fx .chars.enter .ccard{animation:fadeUp .5s cubic-bezier(.2,.8,.2,1) both}
+.fx .chars.enter .ccard:nth-child(2){animation-delay:.07s}
+.fx .chars.enter .ccard:nth-child(3){animation-delay:.14s}
+.fx .chars.enter .ccard:nth-child(4){animation-delay:.21s}
+.fx .chars.enter .ccard:nth-child(n+5){animation-delay:.28s}
+
+/* dados: crítico e desastre (aparecem sempre) */
+.face.crit{border-color:var(--acc);box-shadow:0 0 0 1px rgba(var(--acc-rgb),.5),0 0 14px rgba(var(--acc-rgb),.45);color:var(--acc-text)}
+.face.crit small{color:var(--acc-text)}
+.face.fumble{border-color:rgba(217,83,74,.8);color:#e0766e;position:relative;overflow:hidden}
+.face.fumble small{color:#e0766e}
+.face.fumble::after{content:"";position:absolute;inset:-20%;background:linear-gradient(115deg,transparent 46%,rgba(217,83,74,.9) 47%,rgba(217,83,74,.9) 49%,transparent 50%,transparent 58%,rgba(217,83,74,.6) 59%,transparent 60%);pointer-events:none}
+.fx .face.spinning b,.fx .t-s b.spinning{opacity:.75;filter:blur(.4px)}
+.fx .face.spinning{animation:diceShake .09s linear infinite}
+@keyframes diceShake{25%{transform:translate(-1px,1px) rotate(-4deg)}75%{transform:translate(1px,-1px) rotate(4deg)}}
+.fx .face.landed,.fx .t-s b.landed{animation:diceLand .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes diceLand{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+.fx .face.crit.landed{animation:diceLand .35s cubic-bezier(.2,1.6,.4,1),critGlow 1.4s ease-out}
+@keyframes critGlow{0%{box-shadow:0 0 0 1px rgba(var(--acc-rgb),.8),0 0 40px rgba(var(--acc-rgb),.9)}}
+.fx .face.fumble.landed{animation:diceLand .35s cubic-bezier(.2,1.6,.4,1),fumbleShake .4s .1s}
+@keyframes fumbleShake{25%{transform:translateX(-3px)}50%{transform:translateX(3px)}75%{transform:translateX(-2px)}}
+
+/* PV/PD: quebrar, acender, apagar */
+.fx .pip.brk{animation:pipBreak .55s ease-out both}
+@keyframes pipBreak{0%{background:var(--danger);transform:skewX(-6deg) scale(1.15)}40%{background:var(--danger);transform:skewX(-6deg) scale(1.15) rotate(8deg)}100%{transform:skewX(-6deg) scale(1);background:#0f1113}}
+.fx .pip.gain{animation:pipGain .5s ease-out both}
+@keyframes pipGain{0%{background:#0f1113;box-shadow:none}50%{box-shadow:0 0 12px rgba(var(--acc-rgb),.9);transform:skewX(-6deg) scale(1.15)}100%{transform:skewX(-6deg)}}
+.res-pd .pip{position:relative}
+.fx .pip.snuff{animation:pipSnuff .7s ease-out both}
+.fx .pip.snuff::after{content:"";position:absolute;left:30%;bottom:60%;width:40%;height:120%;border-radius:50%;background:rgba(200,205,212,.5);filter:blur(3px);animation:smoke .9s ease-out forwards;pointer-events:none}
+@keyframes pipSnuff{0%{background:var(--bone)}30%{background:#d8b44a;box-shadow:0 0 10px rgba(216,180,74,.7)}100%{background:#0f1113}}
+@keyframes smoke{0%{opacity:.8;transform:translateY(0) scale(.6)}100%{opacity:0;transform:translateY(-22px) scale(1.6)}}
+
+/* dano: flash nas bordas + tremida */
+.fx-hitflash{position:fixed;inset:0;pointer-events:none;z-index:70;opacity:0;box-shadow:inset 0 0 140px 30px rgba(200,30,30,.75)}
+.fx .fx-hitflash.on{animation:hitFlash .5s ease-out}
+@keyframes hitFlash{0%{opacity:1}100%{opacity:0}}
+.fx #app.fx-shake{animation:shake .35s cubic-bezier(.36,.07,.19,.97)}
+.fx #app.fx-shake-big{animation:shake .55s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(4px)}30%,50%,70%{transform:translateX(-6px)}40%,60%{transform:translateX(6px)}100%{transform:none}}
+
+/* PV baixo: bordas avermelhadas pulsando como batimento */
+.fx-vignette{position:fixed;inset:0;pointer-events:none;z-index:15;opacity:0;transition:opacity .8s;background:radial-gradient(ellipse at center,transparent 52%,rgba(120,10,10,.35) 82%,rgba(90,0,0,.6) 100%)}
+.low-hp .fx-vignette{opacity:.75}
+.fx.low-hp .fx-vignette{animation:heartbeat 1.5s ease-in-out infinite}
+@keyframes heartbeat{0%,100%{opacity:.55}12%{opacity:1}24%{opacity:.6}36%{opacity:.95}60%{opacity:.55}}
+
+/* PV 0: ficha sem cor */
+.sheet.dead .hero .portrait,.sheet.dead .hero .meta .tag,.sheet.dead .res,.sheet.dead .card,.sheet.dead .paper{filter:grayscale(1) brightness(.85);transition:filter 1s}
+.sheet.dead .name{color:#8d9985;text-shadow:none}
+.sheet.dead .hero{border-color:var(--line2)}
+.sheet.dead .name{text-decoration:line-through;text-decoration-color:var(--danger);text-decoration-thickness:4px}
+.dead-chip{font-family:Oswald;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--danger);padding:4px 10px;border-radius:3px;transform:rotate(-3deg);filter:none}
+
+/* glitch paranormal */
+.fx .fx-glitch{animation:glitch .5s steps(1,end)}
+@keyframes glitch{
+  0%{transform:none}
+  15%{transform:translate(-3px,1px) skewX(-10deg);text-shadow:3px 0 rgba(217,83,74,.85),-3px 0 rgba(90,169,214,.75);clip-path:inset(10% 0 40% 0)}
+  30%{transform:translate(3px,-1px);clip-path:inset(55% 0 8% 0);filter:drop-shadow(3px 0 rgba(217,83,74,.8)) drop-shadow(-3px 0 rgba(90,169,214,.7))}
+  45%{transform:translate(-1px,2px) skewX(8deg);opacity:.6;clip-path:none}
+  60%{transform:translate(2px,0);text-shadow:-2px 0 rgba(217,83,74,.8),2px 0 rgba(90,169,214,.7);clip-path:inset(30% 0 30% 0)}
+  80%{transform:none;opacity:1;clip-path:none}
+  100%{transform:none}
+}
+
+/* lanterna (página inicial, só com mouse) */
+.fx-flashlight{position:fixed;inset:0;pointer-events:none;z-index:12;opacity:0;transition:opacity .6s;background:radial-gradient(circle 260px at var(--mx,50%) var(--my,40%),transparent 0,rgba(4,5,7,.18) 45%,rgba(4,5,7,.5) 100%)}
+.fx.flashlight .fx-flashlight.lit{opacity:1}
+
+/* TV: pulso ao trocar de turno */
+.fx .tv.pulse::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;animation:tvPulse 1.3s ease-out forwards}
+@keyframes tvPulse{0%{box-shadow:inset 0 0 0 0 rgba(var(--acc-rgb),0)}25%{box-shadow:inset 0 0 14vh 2vh rgba(var(--acc-rgb),.55)}100%{box-shadow:inset 0 0 0 0 rgba(var(--acc-rgb),0)}}
+/* TV: ameaça revelada */
+.tv-reveal{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(60,6,6,.97),rgba(0,0,0,.99) 70%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:revealIn .35s ease-out}
+.tv-reveal.out{animation:revealOut .6s ease-in forwards}
+.tv-reveal-in{display:flex;flex-direction:column;align-items:center;gap:1.5vh;text-align:center}
+.tv-reveal-ic{color:var(--danger);animation:revealIc 2.6s ease-out}
+.tv-reveal-ic svg{width:14vh;height:14vh;filter:drop-shadow(0 0 4vh rgba(217,83,74,.7))}
+.tv-reveal small{font-family:Oswald;text-transform:uppercase;letter-spacing:.5em;color:#e0766e;font-size:2.6vh}
+.tv-reveal strong{position:relative;font-family:Oswald;font-weight:600;text-transform:uppercase;font-size:13vh;line-height:1;color:#f0d6d3;text-shadow:0 0 5vh rgba(217,83,74,.6);animation:glitch .5s steps(1,end) 3}
+@keyframes revealIn{from{opacity:0}}
+@keyframes revealOut{to{opacity:0;filter:blur(10px)}}
+@keyframes revealIc{0%{transform:scale(.6) rotate(-30deg);opacity:0}20%{transform:scale(1.1) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+
+@media (prefers-reduced-motion:reduce){body:not(.fx) *{animation-duration:.001ms!important}}

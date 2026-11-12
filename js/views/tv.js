@@ -5,6 +5,7 @@ import { CONFIG } from '../config.js';
 import { normPublic } from '../data.js';
 import { msgOf } from '../store.js';
 import { esc, IC, accentVars } from '../ui.js';
+import { fxEnabled } from '../fx.js';
 
 const STATUS_CLS = { 'Ileso': 'ok', 'Ferido': 'mid', 'Muito ferido': 'bad', 'Caído': 'down' };
 
@@ -14,6 +15,8 @@ export async function mount(root, _params, ctx) {
   ctx.status('ok', 'TV');
   let pcs = [], npcs = [], enc = { active: false }, error = null;
   let lastTurnKey = '';
+  let seenNpcs = null; // ids das ameaças já mostradas
+  const revealQueue = []; let revealing = false;
 
   // ---------------- manter a tela ligada ----------------
   let lock = null;
@@ -100,13 +103,27 @@ export async function mount(root, _params, ctx) {
     const cur = enc.active ? order.find((e) => e.id === enc.current) : null;
     const curInfo = cur ? entryInfo(cur) : null;
     ctx.setAccent(curInfo && curInfo.theme ? curInfo.theme : null);
-    root.innerHTML = `<div class="tv${enc.active ? ' in-combat' : ''}${changed ? ' swap' : ''}">
+    root.innerHTML = `<div class="tv${enc.active ? ' in-combat' : ''}${changed ? ' swap pulse' : ''}">
       ${error ? `<p class="tv-err">${esc(error)}</p>` : ''}
       ${enc.active ? combatView() : idleView()}
       <div class="tv-foot"><span class="tv-clock" id="tv-clock"></span><a class="tv-exit" href="/" data-link>sair da TV</a></div>
     </div>`;
     tick();
   }
+  // ameaça revelada: entra em tela cheia com glitch
+  function runReveal() {
+    if (revealing || !revealQueue.length) return;
+    if (!fxEnabled()) { revealQueue.length = 0; return; }
+    revealing = true;
+    const name = revealQueue.shift();
+    const el = document.createElement('div');
+    el.className = 'tv-reveal';
+    el.innerHTML = `<div class="tv-reveal-in"><span class="tv-reveal-ic">${IC.threat}</span><small>Ameaça</small><strong data-text="${esc(name)}">${esc(name)}</strong></div>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add('out'), 2600);
+    setTimeout(() => { el.remove(); revealing = false; runReveal(); }, 3200);
+  }
+
   function tick() {
     const el = root.querySelector('#tv-clock');
     if (el) el.textContent = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -118,6 +135,10 @@ export async function mount(root, _params, ctx) {
     try {
       const [p, n, e] = await Promise.all([store.list(), store.listNpcs(), store.getEncounter()]);
       pcs = p || []; npcs = n || []; enc = e || { active: false }; error = null;
+      const ids = new Set(npcs.map((x) => x.id));
+      if (seenNpcs) npcs.filter((x) => !seenNpcs.has(x.id)).forEach((x) => revealQueue.push((x.data && x.data.name) || '???'));
+      seenNpcs = ids;
+      runReveal();
     } catch (e) { error = msgOf(e); }
     render();
   }
@@ -134,5 +155,6 @@ export async function mount(root, _params, ctx) {
     unsub1(); unsub2(); clearTimeout(t); clearInterval(poll); clearInterval(clock);
     document.removeEventListener('visibilitychange', onVis);
     try { if (lock) lock.release(); } catch (e) { /* ok */ }
+    document.querySelectorAll('.tv-reveal').forEach((x) => x.remove());
   };
 }

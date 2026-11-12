@@ -2,6 +2,7 @@
 import { CONFIG } from './config.js';
 import { getStore } from './store.js';
 import { esc, IC, accentVars } from './ui.js';
+import { initFx, fxEnabled, lowHp, flashlight } from './fx.js';
 
 const app = document.getElementById('app');
 let cleanup = null;
@@ -16,6 +17,7 @@ function shell() {
         <a class="tab" href="/" data-link data-nav="home">Personagens</a>
         <a class="tab" href="/mesa" data-link data-nav="mesa">Mesa</a>
       </nav>
+      <button class="fxbtn" data-fx-toggle aria-pressed="true" title="Efeitos visuais" aria-label="Ligar ou desligar efeitos visuais"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
       <span class="status" id="status"><i></i><span></span></span>
     </div></header>
     <main class="wrap" id="view"></main>`;
@@ -53,10 +55,16 @@ async function route() {
   document.body.classList.toggle('tv-mode', name === 'tv');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === (name === 'mesa' ? 'mesa' : name === 'home' ? 'home' : '')));
 
+  lowHp(false); flashlight(false);
   // cada tela ganha um container novo (assim os eventos antigos somem junto)
   const old = document.getElementById('view');
+  if (fxEnabled() && old && old.childElementCount && !old.classList.contains('view-out')) {
+    old.classList.add('view-out');
+    await new Promise((r) => setTimeout(r, 170));
+    if (my !== seq) return;
+  }
   const view = document.createElement('main');
-  view.className = 'wrap view-' + name; view.id = 'view';
+  view.className = 'wrap view-in view-' + name; view.id = 'view';
   old.replaceWith(view);
   window.scrollTo(0, 0);
 
@@ -82,6 +90,7 @@ window.addEventListener('popstate', route);
 
 (async function start() {
   shell();
+  initFx();
   setStatus('pending', 'Conectando…');
   store = await getStore();
   route();
