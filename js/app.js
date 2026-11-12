@@ -46,9 +46,11 @@ async function route() {
   if (path === '/' || path === '/index.html') name = 'home';
   else if (path === '/novo') name = 'novo';
   else if (path === '/mesa') name = 'mesa';
+  else if (path === '/tv') name = 'tv';
   else { const m = path.match(/^\/ficha\/([a-z0-9-]+)$/); if (m) { name = 'ficha'; params = { slug: m[1] }; } }
 
   setAccent(null);
+  document.body.classList.toggle('tv-mode', name === 'tv');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === (name === 'mesa' ? 'mesa' : name === 'home' ? 'home' : '')));
 
   // cada tela ganha um container novo (assim os eventos antigos somem junto)

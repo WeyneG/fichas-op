@@ -231,7 +231,7 @@ export async function mount(root, _params, ctx) {
     const keep = ae && root.contains(ae) && (ae.dataset.npc || ae.dataset.init) ? (ae.dataset.npc ? `[data-npc="${ae.dataset.npc}"][data-f="${ae.dataset.f}"]` : `[data-init="${ae.dataset.init}"]`) : null;
     let s0 = null; try { s0 = keep ? ae.selectionStart : null; } catch (e) { /* ok */ }
     lastSnap = snap();
-    root.innerHTML = `<section class="intro small"><p class="kicker">${IC.table}<span>Ao vivo</span></p><h1 class="title">Mesa</h1></section>${head}${body}`;
+    root.innerHTML = `<section class="intro small mesa-intro"><div><p class="kicker">${IC.table}<span>Ao vivo</span></p><h1 class="title">Mesa</h1></div><a class="btn ghost tv-link" href="/tv" data-link title="Abrir no notebook ligado na TV">Modo TV</a></section>${head}${body}`;
     if (keep) { const n = root.querySelector(keep); if (n) { n.focus({ preventScroll: true }); try { if (s0 != null) n.setSelectionRange(s0, s0); } catch (e) { /* ok */ } } }
     status();
   }
