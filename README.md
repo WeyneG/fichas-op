@@ -1,191 +1,162 @@
+<div align="center">
+
+<img src="icons/icon-512.png" alt="Fichas · Ordem Paranormal" width="120">
+
 # Fichas · Ordem Paranormal
 
-Site das fichas da mesa. Cada jogador tem a sua ficha com link próprio, abre no
-celular ou no note, e tudo sincroniza na hora (PV, PD, perícias, anotações).
+**Fichas de personagem online para mesas de Ordem Paranormal RPG — com sincronização em tempo real, área do mestre e controle de combate.**
 
-- **Personagens** (`/`): lista de fichas da mesa.
-- **Ficha** (`/ficha/nome`): PV/PD, atributos, perícias com rolagem de dados,
-  habilidades, inventário, histórico, anotações e diário de sessões.
-- **Novo personagem** (`/novo`): cada jogador cria a própria ficha e escolhe um PIN.
-- **Mesa** (`/mesa`): PV/PD de todo mundo ao vivo. Com o PIN do mestre, dá pra
-  ajustar a ficha de qualquer um.
+[**🔗 Acessar o site**](https://fichas-op.vercel.app)
 
-**Quem vê o quê:**
-- **Ficha** (PV, PD, perícias, habilidades, inventário): qualquer pessoa com o link vê.
-- **Histórico e Anotações**: só o dono (com o PIN) e o mestre veem.
-- **Editar**: só o dono (com o PIN) ou o mestre.
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat-square&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
+
+</div>
 
 ---
+## 📸 Capturas de tela
 
-## Estrutura
+<div align="center">
+
+<img width="1147" height="619" alt="image" src="https://github.com/user-attachments/assets/964a6667-1b4b-49bd-87b9-5c36d9c5d6c2" />
+
+<div align="center">
+
+<img width="579" height="882" alt="image" src="https://github.com/user-attachments/assets/1c703bfc-499e-4e02-bb47-5ff3ca38aec0" />
+
+<div align="center">
+
+<img width="1134" height="816" alt="image" src="https://github.com/user-attachments/assets/25056e1f-6407-42e9-ae21-fd73d485ab9c" />
+
+<div align="center">
+
+<img width="1139" height="807" alt="image" src="https://github.com/user-attachments/assets/50659211-fd3a-443c-9a34-25d3fbfc2ac7" />
+
+
+## 📖 Sobre
+
+Ficha de papel some, apaga e ninguém sabe quanto de vida o outro tem. Este projeto
+coloca as fichas da mesa num site só: cada jogador cria a sua, edita pelo celular ou
+pelo PC, e tudo aparece atualizado na hora para o grupo e para o mestre.
+
+Feito para a minha mesa de **Ordem Paranormal RPG 2**, com visual inspirado no
+estilo das fichas oficiais: tons de cinza, névoa, tags "rasgadas" e fonte de máquina
+de escrever.
+
+## ✨ Funcionalidades
+
+### Para os jogadores
+- 📜 **Ficha completa** — atributos (Físico, Mente, Emoção), 20 perícias, habilidades, inventário, PV e PD
+- 🎲 **Rolagem de dados** — cada perícia rola *dado da perícia + dado do atributo*; histórico de rolagens e DT opcional
+- ❤️ **PV e PD rápidos** — botões ±1, dano/cura por quantidade, clique direto nos quadradinhos
+- 📝 **Histórico e anotações privadas** — história, aparência, conexões, diário de sessões
+- 🎨 **Cor da ficha** — cada jogador escolhe a cor do seu personagem (o site inteiro assume a cor ao abrir a ficha)
+- 🔒 **PIN pessoal** — todo mundo vê as fichas, mas só o dono edita
+- 💾 **Backup** — exportar e importar a ficha em arquivo
+- 📱 **Celular primeiro** — layout responsivo e "Adicionar à tela inicial" com ícone próprio
+
+### Para o mestre
+- 🎭 **Modo mestre** — com o PIN de mestre, edita qualquer ficha (inclusive a área privada)
+- 👁️ **Mesa ao vivo** — PV/PD de todo o grupo atualizando em tempo real
+- ⚔️ **Combate por rodadas** — iniciativa, ordenação, passar turno; o jogador da vez recebe **"É A SUA VEZ!"** na ficha (e o celular vibra)
+- 👹 **Ameaças (NPCs)** — criaturas com PV e notas secretas, que podem ficar **escondidas** ou **visíveis**; com PV oculto, os jogadores só veem o estado (*Ileso, Ferido, Muito ferido, Caído*)
+
+## 🛠️ Tecnologias e decisões
+
+| Camada | Escolha | Por quê |
+|---|---|---|
+| Front-end | HTML, CSS e JavaScript puro (ES Modules) | Sem build, sem framework: abre rápido no celular e é simples de manter |
+| Banco | Supabase (PostgreSQL) | Banco relacional de verdade, plano gratuito e API pronta |
+| Tempo real | Supabase Realtime | Mudanças de PV, turnos e ameaças chegam em todos os aparelhos na hora |
+| Hospedagem | Vercel | Deploy automático a cada `git push` |
+
+### 🔐 Segurança
+
+A chave pública do Supabase fica no navegador, então **a proteção está no banco**, não no front:
+
+- **Row Level Security** em todas as tabelas: a parte pública da ficha é *somente leitura*; PINs, anotações privadas, ameaças escondidas e a ordem completa do combate ficam em tabelas **sem nenhuma policy de acesso**.
+- **Escrita só via funções RPC** (`security definer`) que conferem o PIN antes de gravar.
+- **PINs com hash bcrypt** (`pgcrypto`) — nunca guardados em texto.
+- **Ameaças escondidas** não são filtradas na tela, e sim **no banco**: o navegador do jogador nem recebe esses dados.
+
+## 📁 Estrutura
 
 ```
-index.html            página única (o roteamento é feito em JS)
-css/style.css         visual
-js/config.js          ← AQUI você cola a URL e a chave do Supabase
-js/app.js             roteador
-js/store.js           salvar/ler (Supabase ou navegador)
-js/data.js            perícias, modelos (ex.: Victor)
-js/ui.js              utilitários
-js/views/*.js         telas (início, ficha, novo, mesa)
-supabase/schema.sql   banco de dados (rodar uma vez no Supabase)
-vercel.json           faz /ficha/... funcionar na Vercel
+├── index.html             # página única (SPA com roteamento em JS)
+├── css/style.css          # visual
+├── js/
+│   ├── app.js             # roteador e casca do site
+│   ├── config.js          # URL e chave pública do Supabase
+│   ├── store.js           # camada de dados (Supabase ou modo local)
+│   ├── data.js            # perícias, modelos e cores
+│   ├── ui.js              # utilitários de interface
+│   └── views/             # telas: início, ficha, novo personagem, mesa
+├── supabase/
+│   ├── schema.sql         # tabelas, segurança e funções das fichas
+│   └── rodadas.sql        # combate e ameaças
+├── icons/  img/           # ícones e logo
+└── vercel.json            # rotas da SPA na Vercel
 ```
 
-Não precisa de build, npm nem framework: é HTML + CSS + JS puro.
+## 🚀 Rodando a sua própria mesa
 
----
+<details>
+<summary><b>1. Testar localmente (modo local, sem banco)</b></summary>
 
-## Passo 1: testar no seu PC (opcional)
-
-Com o `config.js` vazio, o site roda em **modo local** (salva só no navegador).
-Serve pra ver como tudo funciona.
+Com o `js/config.js` vazio, o site salva tudo só no navegador:
 
 ```bash
-cd ordem-fichas
 npx serve -s .
 ```
 
 Abra `http://localhost:3000`. No modo local, o PIN do mestre é `1234`.
 
-> Abrir o `index.html` com dois cliques **não funciona**. Precisa de um servidor
-> como o `serve`, por causa dos módulos JS.
+</details>
 
----
+<details>
+<summary><b>2. Criar o banco no Supabase</b></summary>
 
-## Passo 2: criar o banco no Supabase (grátis)
-
-1. Entre em **https://supabase.com**, faça login com o GitHub e clique em **New project**.
-   - **Name:** `fichas-op` (ou outro nome)
-   - **Database Password:** gere uma e guarde (não vai usar no site)
-   - **Region:** *South America (São Paulo)*
-   - Clique em **Create new project** e espere uns 2 minutos.
-2. No menu da esquerda, abra **SQL Editor** e clique em **New query**.
-3. Abra o arquivo `supabase/schema.sql`, copie **tudo** e cole no editor.
-4. **Troque o PIN do mestre:** procure a linha com `extensions.crypt('1234'` e
-   troque `1234` pelo PIN que você quiser (4 a 8 números).
-5. Clique em **Run**. Tem que aparecer *Success. No rows returned*.
-   Depois, faça o mesmo com o arquivo `supabase/rodadas.sql` (combate e ameaças).
-6. Pegue as duas informações de acesso:
-   - **Project URL:** em **Project Settings → Data API** (ou no botão **Connect**
-     no topo). É algo como `https://abcdefgh.supabase.co`.
-   - **Chave pública:** em **Project Settings → API Keys**. Use a
-     **Publishable key** (`sb_publishable_...`). Em projetos antigos, a
-     equivalente é a **anon public** (`eyJ...`).
-     ⚠️ **Nunca** use a `secret` / `service_role`.
-7. Abra `js/config.js` e cole os dois valores:
+1. Crie um projeto gratuito em [supabase.com](https://supabase.com).
+2. No **SQL Editor**, rode `supabase/schema.sql` — antes, troque o PIN do mestre na linha marcada com `<<<<<<`.
+3. Rode também `supabase/rodadas.sql`.
+4. Em **Project Settings → API Keys**, copie a **Publishable key** e a URL do projeto para o `js/config.js`:
 
 ```js
 export const CONFIG = {
-  SUPABASE_URL: 'https://abcdefgh.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_xxxxxxxxx',
-  NOME_DA_MESA: 'Ordem Paranormal',   // título que aparece no site
+  SUPABASE_URL: 'https://SEU-PROJETO.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_...',
+  NOME_DA_MESA: 'Ordem Paranormal',
   SUBTITULO: 'Fichas da mesa',
 };
 ```
 
-> Pode deixar essas duas chaves no GitHub público sem problema: elas foram
-> feitas pra ficar no navegador. Quem protege as fichas são o PIN e as regras
-> do banco (o `schema.sql` bloqueia escrita direta).
+> A chave *publishable* pode ficar pública — quem protege os dados são as regras do banco. **Nunca** use a chave *secret*.
 
-Se quiser conferir antes de subir, rode o `npx serve -s .` de novo: o status no
-canto de cima tem que mostrar **Conectado**.
+</details>
 
----
+<details>
+<summary><b>3. Publicar na Vercel</b></summary>
 
-## Passo 3: subir pro GitHub
+1. Suba o projeto para o GitHub.
+2. Na [Vercel](https://vercel.com): **Add New → Project → Import** o repositório.
+3. Framework Preset: **Other**, sem build. Clique em **Deploy**.
 
-1. Crie um repositório novo em **https://github.com/new** (ex.: `fichas-op`).
-   Pode ser público ou privado.
-2. Na pasta do projeto:
+A partir daí, cada `git push` atualiza o site sozinho.
 
-```bash
-git init
-git add .
-git commit -m "Fichas Ordem Paranormal"
-git branch -M main
-git remote add origin https://github.com/WeyneG/fichas-op.git
-git push -u origin main
-```
+</details>
 
----
+## ⚠️ Aviso
 
-## Passo 4: publicar na Vercel
+Projeto **de fã, sem fins lucrativos e não oficial**. *Ordem Paranormal* e seus elementos
+pertencem a Rafael Lange (Cellbit) e à Jambô Editora. Este site não é afiliado nem endossado por eles.
 
-1. Entre em **https://vercel.com** com o GitHub.
-2. Clique em **Add New… → Project** e escolha o repositório `fichas-op` → **Import**.
-3. Nas configurações:
-   - **Framework Preset:** `Other`
-   - **Build Command:** deixe vazio
-   - **Output Directory:** deixe vazio (ou `.`)
-4. Clique em **Deploy**. Em uns segundos sai um link tipo
-   `https://fichas-op.vercel.app`.
-5. (Opcional) Pra mudar o nome do link: **Settings → Domains** e edite o
-   `.vercel.app`.
+## 👤 Autor
 
-A partir daí, todo `git push` atualiza o site sozinho.
+**Weyne Gabriel** — Desenvolvedor Full Stack
 
----
-
-## Passo 5: usar com a mesa
-
-1. Mande o link no grupo.
-2. Cada jogador toca em **Novo personagem**, preenche o nome e escolhe um **PIN**.
-   O PIN fica lembrado no aparelho e serve pra desbloquear em outro.
-3. Atributos, perícias, PV/PD máximo e habilidades se ajustam direto na ficha.
-4. **No celular**, use "Adicionar à tela inicial" pra ficar com cara de app:
-   - **Android (Chrome):** menu ⋮ → *Adicionar à tela inicial*
-   - **iPhone (Safari):** botão compartilhar → *Adicionar à Tela de Início*
-5. **Mestre:** abra **Mesa → Sou o mestre** e digite o PIN do mestre. Aí dá pra
-   mexer em PV/PD de qualquer um, e abrir qualquer ficha já vem desbloqueado.
-
-### Combate e ameaças (tela Mesa)
-
-**Mestre (com o PIN):**
-- **Iniciar combate:** entram todos os personagens e as ameaças visíveis.
-- **Iniciativa:** digite o número de cada um e clique em **Ordenar por iniciativa**
-  (maior primeiro). As setas ▲▼ ajustam a ordem na mão.
-- **Turnos:** **Próximo ▶** passa a vez. Quando volta pro primeiro, a rodada sobe.
-  O **▶** ao lado de um nome dá a vez direto pra ele.
-- **Ameaças:** crie criaturas/NPCs com PV. Cada uma pode ficar **Escondida** (os
-  jogadores não recebem nada dela) ou **Visível**. Com **PV oculto**, os jogadores só
-  veem o estado (Ileso, Ferido, Muito ferido, Caído). As notas são só suas.
-
-**Jogadores:**
-- Na Mesa, veem a ordem dos turnos, de quem é a vez e as ameaças reveladas.
-- Na ficha, aparece uma faixa com a rodada e, na sua vez, **"É a sua vez!"** (o
-  celular vibra, se o aparelho permitir).
-- Se a vez for de uma ameaça escondida, aparece **"???"**.
-
-### Sua ficha (Victor)
-
-Em **Novo personagem**, escolha o modelo **"Victor — Vigilante · Professor"**.
-Ele já vem com atributos, perícias, habilidades e histórico preenchidos.
-
----
-
-## Perguntas comuns
-
-**Esqueceram o PIN.** O mestre abre a ficha (com o PIN do mestre) e vai em
-**Opções da ficha → Trocar PIN**.
-
-**Quero trocar o PIN do mestre.** Rode de novo, no SQL Editor, só o bloco
-`insert into public.app_settings ...` com o PIN novo.
-
-**Backup.** Na ficha desbloqueada, use **Opções da ficha → Exportar backup**.
-O arquivo traz tudo, inclusive histórico e anotações. Pra restaurar, use
-**Importar backup**.
-
-**Duas pessoas mexendo na mesma ficha ao mesmo tempo.** Fica valendo a última
-alteração salva. Na prática, com cada um na sua ficha, não dá problema.
-
-**A ficha não atualiza sozinha em outro aparelho.** Confira se o `schema.sql`
-rodou inteiro (a última parte liga o tempo real). Se precisar, ative em
-**Database → Publications → supabase_realtime** e marque a tabela `characters`.
-
-**Projeto do Supabase "pausado".** No plano grátis, o Supabase pausa projetos sem
-uso por cerca de uma semana. Se acontecer, entre no painel e clique em
-**Restore**. As fichas continuam lá.
-
-**Segurança.** O PIN é uma trava simples, pensada pra mesa de amigos. Não use
-um PIN que você usa em outras coisas importantes.
+[![GitHub](https://img.shields.io/badge/GitHub-WeyneG-181717?style=flat-square&logo=github)](https://github.com/WeyneG)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-weynegabriel-0A66C2?style=flat-square&logo=linkedin)](https://www.linkedin.com/in/weynegabriel)
