@@ -193,7 +193,7 @@ export async function mount(root, { slug }, ctx) {
     }).join('');
     return `<section class="card"><div class="sec-h"><span class="tag">Habilidades</span></div>${list || '<p class="empty">Nenhuma habilidade ainda.</p>'}<button class="btn ghost add ed" data-act="ab-add">+ Nova habilidade</button></section>`;
   }
-  const face = (x) => `<span class="face">${x.v}<sub>d${x.d}</sub></span>`;
+  const face = (x) => `<span class="face" title="Rolou um d${x.d} e tirou ${x.v}"><small>d${x.d}</small><b>${x.v}</b></span>`;
   const pf = (r, big) => r.dt != null ? `<span class="pf ${r.ok ? 'ok' : 'no'}">${r.ok ? 'passou' : 'falhou'}${big ? ' · DT ' + r.dt : ''}</span>` : '';
   function rollsCard() {
     const tray = [4, 6, 8, 10, 12, 20].map((d) => `<button class="btn" data-act="roll-die" data-d="${d}">d${d}</button>`).join('');

@@ -527,3 +527,13 @@ input.npc-name:focus{outline:none;border-bottom-color:var(--acc-hi)}
 .npc-h .st{flex:none}
 .npc-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr))}
 .ord,.ord>*{min-width:0}
+
+/* dado: tipo em cima (pequeno), resultado embaixo (grande) — evita ler "7d8" como "7 dados" */
+.face{flex-direction:column;align-items:center;justify-content:center;gap:0;height:auto;min-width:32px;padding:2px 6px 3px;line-height:1}
+.face small{font-family:Oswald;font-size:9.5px;letter-spacing:.06em;color:var(--faint);text-transform:lowercase;border-bottom:1px solid var(--line2);padding-bottom:2px;margin-bottom:2px;width:100%;text-align:center}
+.face b{font-weight:500;font-size:16px}
+.face sub{display:none}
+.t-d .face{height:auto;min-width:48px;padding:4px 8px 5px}
+.t-d .face small{font-size:11px}
+.t-d .face b{font-size:26px}
+.h-d .face{min-width:34px}
