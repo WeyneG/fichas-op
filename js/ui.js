@@ -15,6 +15,11 @@ export const IC = {
   eyeOff: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.7 17.7 0 0 1-3.2 4.1M6.6 6.6C3.8 8.4 2 12 2 12s3.6 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
   threat: '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 2.5l2.2 5.3 5.6-2.1-2.1 5.6 5.3 2.2-5.3 2.2 2.1 5.6-5.6-2.1L12 21.5l-2.2-5.3-5.6 2.1 2.1-5.6L1 12.5l5.3-2.2-2.1-5.6 5.6 2.1z"/><circle cx="12" cy="12.3" r="2.4"/></svg>',
   sword: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M14.5 3.5H20.5V9.5L9 21 3 15z"/><path d="M6 12l6 6M4 20l2-2"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 2.8l7.5 2.8v5.6c0 4.6-3.1 8.4-7.5 10-4.4-1.6-7.5-5.4-7.5-10V5.6z"/><path d="M12 7v10M8.5 10.5h7"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
+  search: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>',
+  play: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg>',
+  pen: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>',
   table: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="5"/><circle cx="12" cy="3.5" r="1.6"/><circle cx="20.5" cy="12" r="1.6"/><circle cx="12" cy="20.5" r="1.6"/><circle cx="3.5" cy="12" r="1.6"/></svg>',
 };
 
@@ -126,4 +131,35 @@ export function pinForm(id, label, btn) {
     <div class="pinrow"><input class="field pin" id="pin-${id}" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="••••" autocomplete="off">
     <button class="btn pri" type="submit">${btn}</button></div>
     <p class="pin-err" aria-live="polite"></p></form>`;
+}
+
+// Desenhos dos dados (traço simples) para a bandeja de rolagem
+const DIE_SHAPES = {
+  4: '<path d="M12 3L21 19H3z"/><path d="M12 3v16M3 19l9-5 9 5"/>',
+  6: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5L12 12l8-4.5M12 12v9"/>',
+  8: '<path d="M12 2.5L20.5 12 12 21.5 3.5 12z"/><path d="M3.5 12h17M12 2.5L8.5 12 12 21.5 15.5 12z"/>',
+  10: '<path d="M12 2.5L21 10l-3 9H6l-3-9z"/><path d="M12 2.5L8 13l4 6 4-6zM3 10l5 3M21 10l-5 3"/>',
+  12: '<path d="M12 2.5l8.8 6.4-3.4 10.3H6.6L3.2 8.9z"/><path d="M12 7l4.4 3.2-1.7 5.1H9.3l-1.7-5.1z"/><path d="M12 2.5V7M20.8 8.9l-4.4 1.3M17.4 19.2l-2.7-3.9M6.6 19.2l2.7-3.9M3.2 8.9l4.4 1.3"/>',
+  20: '<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 7.5l4.5 7.5h-9z"/><path d="M12 2.5v5M3.5 7.3L7.5 15M20.5 7.3L16.5 15M3.5 16.7L7.5 15M20.5 16.7L16.5 15M12 21.5L7.5 15M12 21.5L16.5 15"/>',
+};
+export function dieIcon(d, size = 30) {
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" aria-hidden="true">${DIE_SHAPES[d] || DIE_SHAPES[6]}</svg>`;
+}
+
+// "2d6+1d4+3" → { dice:[{d,v}], mod, text } (ou null se inválido)
+export function rollExpression(expr, rnd) {
+  const s = String(expr || '').toLowerCase().replace(/\s+/g, '');
+  if (!s || !/^[+-]?(\d*d\d+|\d+)([+-](\d*d\d+|\d+))*$/.test(s)) return null;
+  const dice = []; let mod = 0, count = 0;
+  const re = /([+-]?)(\d*)d(\d+)|([+-]?)(\d+)/g; let m;
+  while ((m = re.exec(s))) {
+    if (m[3]) {
+      const n = Math.max(1, parseInt(m[2] || '1', 10)), sides = parseInt(m[3], 10), sign = m[1] === '-' ? -1 : 1;
+      if (sides < 2 || sides > 100) return null;
+      count += n; if (count > 30) return null;
+      for (let i = 0; i < n; i++) dice.push({ d: sides, v: rnd(sides), neg: sign < 0 });
+    } else if (m[5]) mod += (m[4] === '-' ? -1 : 1) * parseInt(m[5], 10);
+  }
+  const sum = dice.reduce((t, x) => t + (x.neg ? -x.v : x.v), 0) + mod;
+  return { dice, mod, sum, text: s };
 }
