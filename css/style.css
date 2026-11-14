@@ -708,9 +708,6 @@ body.tv-mode .wrap{max-width:none;padding:0}
   100%{transform:none}
 }
 
-/* lanterna (página inicial, só com mouse) */
-.fx-flashlight{position:fixed;inset:0;pointer-events:none;z-index:12;opacity:0;transition:opacity .6s;background:radial-gradient(circle 260px at var(--mx,50%) var(--my,40%),transparent 0,rgba(4,5,7,.18) 45%,rgba(4,5,7,.5) 100%)}
-.fx.flashlight .fx-flashlight.lit{opacity:1}
 
 /* TV: pulso ao trocar de turno */
 .fx .tv.pulse::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;animation:tvPulse 1.3s ease-out forwards}

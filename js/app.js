@@ -2,7 +2,7 @@
 import { CONFIG } from './config.js';
 import { getStore } from './store.js';
 import { esc, IC, accentVars } from './ui.js';
-import { initFx, fxEnabled, lowHp, flashlight } from './fx.js';
+import { initFx, fxEnabled, lowHp } from './fx.js';
 
 const app = document.getElementById('app');
 let cleanup = null;
@@ -55,7 +55,7 @@ async function route() {
   document.body.classList.toggle('tv-mode', name === 'tv');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === (name === 'mesa' ? 'mesa' : name === 'home' ? 'home' : '')));
 
-  lowHp(false); flashlight(false);
+  lowHp(false);
   // cada tela ganha um container novo (assim os eventos antigos somem junto)
   const old = document.getElementById('view');
   if (fxEnabled() && old && old.childElementCount && !old.classList.contains('view-out')) {

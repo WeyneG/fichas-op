@@ -22,7 +22,7 @@ function apply() {
 }
 
 // ---------------------------------------------------------------------
-// camadas fixas (vinheta de PV baixo, flash de dano, lanterna)
+// camadas fixas (vinheta de PV baixo, flash de dano)
 // ---------------------------------------------------------------------
 function layer(cls) {
   let el = document.querySelector('.' + cls);
@@ -42,26 +42,6 @@ export function hit(strength = 1) {
 export function lowHp(on) {
   layer('fx-vignette');
   document.body.classList.toggle('low-hp', !!on);
-}
-
-// lanterna (só na página inicial, só com mouse)
-let flOn = false;
-const onMove = (e) => {
-  const el = layer('fx-flashlight');
-  el.style.setProperty('--mx', e.clientX + 'px');
-  el.style.setProperty('--my', e.clientY + 'px');
-  el.classList.add('lit');
-};
-const onLeave = () => { const el = document.querySelector('.fx-flashlight'); if (el) el.classList.remove('lit'); };
-export function flashlight(on) {
-  const fine = (() => { try { return window.matchMedia('(pointer: fine)').matches; } catch (e) { return false; } })();
-  on = on && fine;
-  if (on === flOn) return;
-  flOn = on;
-  layer('fx-flashlight');
-  document.body.classList.toggle('flashlight', on);
-  if (on) { window.addEventListener('pointermove', onMove); document.addEventListener('pointerleave', onLeave); }
-  else { window.removeEventListener('pointermove', onMove); document.removeEventListener('pointerleave', onLeave); onLeave(); }
 }
 
 // ---------------------------------------------------------------------

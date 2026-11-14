@@ -3,14 +3,12 @@ import { CONFIG } from '../config.js';
 import { normPublic } from '../data.js';
 import { auth, msgOf } from '../store.js';
 import { esc, IC, miniBar, accentVars } from '../ui.js';
-import { flashlight } from '../fx.js';
 
 export async function mount(root, _params, ctx) {
   const { store } = ctx;
   document.title = `${CONFIG.NOME_DA_MESA} — ${CONFIG.SUBTITULO}`;
   ctx.status(store.mode === 'cloud' ? 'ok' : 'local', store.mode === 'cloud' ? 'Conectado' : 'Modo local');
   let rows = null, error = null, firstList = true;
-  flashlight(true);
 
   function card(r) {
     const p = normPublic(r.data);
@@ -45,5 +43,5 @@ export async function mount(root, _params, ctx) {
   render(); await load();
   let t = null;
   const unsub = store.subscribe(null, () => { clearTimeout(t); t = setTimeout(load, 400); });
-  return () => { unsub(); clearTimeout(t); flashlight(false); };
+  return () => { unsub(); clearTimeout(t); };
 }
