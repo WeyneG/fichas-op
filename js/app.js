@@ -3,6 +3,7 @@ import { CONFIG } from './config.js';
 import { getStore } from './store.js';
 import { esc, IC, accentVars } from './ui.js';
 import { initFx, fxEnabled, lowHp } from './fx.js';
+import { initRules, closeRules } from './rules.js';
 
 const app = document.getElementById('app');
 let cleanup = null;
@@ -17,6 +18,7 @@ function shell() {
         <a class="tab" href="/" data-link data-nav="home">Personagens</a>
         <a class="tab" href="/mesa" data-link data-nav="mesa">Mesa</a>
       </nav>
+      <button class="rulesbtn" data-rules="" title="Regras rápidas" aria-label="Abrir regras rápidas"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5c-.8 0-1.5-.7-1.5-1.5z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z"/></svg><span>Regras</span></button>
       <button class="fxbtn" data-fx-toggle aria-pressed="true" title="Efeitos visuais" aria-label="Ligar ou desligar efeitos visuais"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg></button>
       <span class="status" id="status"><i></i><span></span></span>
     </div></header>
@@ -55,7 +57,7 @@ async function route() {
   document.body.classList.toggle('tv-mode', name === 'tv');
   document.querySelectorAll('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === (name === 'mesa' ? 'mesa' : name === 'home' ? 'home' : '')));
 
-  lowHp(false);
+  lowHp(false); closeRules();
   // cada tela ganha um container novo (assim os eventos antigos somem junto)
   const old = document.getElementById('view');
   if (fxEnabled() && old && old.childElementCount && !old.classList.contains('view-out')) {
@@ -91,6 +93,7 @@ window.addEventListener('popstate', route);
 (async function start() {
   shell();
   initFx();
+  initRules();
   setStatus('pending', 'Conectando…');
   store = await getStore();
   route();

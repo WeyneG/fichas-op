@@ -7,8 +7,12 @@ import { hit, lowHp, spinDice } from '../fx.js';
 // Ações que precisam do PIN
 const EDIT_ACTS = new Set(['delta', 'amt', 'pip', 'full', 'lvl', 'portrait', 'portrait-remove', 'ab-use', 'ab-edit', 'ab-save',
   'ab-add', 'ab-del', 'inv-add', 'inv-del', 'con-add', 'con-del', 'ses-add', 'ses-del', 'export', 'import', 'pin-change',
-  'delete', 'opt-pin', 'color', 'rdt', 'armor', 'attr-step', 'rel-photo', 'rel-grau', 'rel-uso', 'rel-reset', 'pt-add', 'pt-del', 'play']);
+  'delete', 'opt-pin', 'color', 'rdt', 'armor', 'attr-step', 'rel-photo', 'rel-grau', 'rel-uso', 'rel-reset', 'pt-add', 'pt-del', 'play', 'zero-test']);
 // Ações bloqueadas no "modo jogo" (pra não mexer sem querer durante a sessão)
+// Efeitos de falha crítica (Playtest Alpha v1.1)
+const FUMBLE = ['Vexame: descreva a ação do jeito mais vergonhoso.', 'Machucado: Físico −1 passo até o fim da cena.',
+  'Desatenção: Mente −1 passo até o fim da cena.', 'Irritação: Emoção −1 passo até o fim da cena.', 'Acidente: perde 1d4 PV.',
+  'Frustração: perde 1d4 PD.', 'Perda: um item que você carrega se perde.', 'Nada além da falha.'];
 const PLAY_BLOCK = new Set(['lvl', 'portrait', 'portrait-remove', 'ab-edit', 'ab-add', 'ab-del', 'inv-add', 'inv-del', 'attr-step',
   'color', 'rdt', 'delete', 'import', 'opt-pin']);
 const TABS = [['ficha', 'Agente'], ['invest', 'Investigação'], ['rel', 'Relações'], ['historia', 'Histórico']];
@@ -36,9 +40,9 @@ export async function mount(root, { slug }, ctx) {
   let tab0 = ss('tab') || 'ficha'; if (tab0 === 'notas') tab0 = 'invest'; if (!TABS.some(([k]) => k === tab0)) tab0 = 'ficha';
   const ui = {
     tab: tab0, editAb: null, confirm: null, showUnlock: false, optPin: false, showColor: false, anim: [], enter: true,
-    dt: ss('dt') || '', rolls: json(ss('rolls'), []),
+    dt: ss('dt') ?? '7', rolls: json(ss('rolls'), []),
     play: ls('play') === '1',
-    mods: Object.assign({ b1: 0, b2: 0, passo: 0, pavorD: 6, pavorOn: false }, json(ss('mods'), {})),
+    mods: (({ b1 = 0, b2 = 0, passo = 0 }) => ({ b1, b2, passo }))(json(ss('mods'), {})),
     sort: ss('sort') || 'nome', abTab: 'hab', abQuery: '', collapsed: new Set(json(ss('collapsed'), [])),
     pAba: 0, nAba: 0, expr: ss('expr') || '',
   };
@@ -181,9 +185,10 @@ export async function mount(root, { slug }, ctx) {
     }
     return `<div class="res res-${key}${low ? ' low' : ''}">
       <div class="res-top"><span class="tag">${label}</span>
-        <span class="res-dt" title="DT ligada ao ${label}"><button class="ed ed2" data-act="rdt" data-res="${key}" data-d="-1" aria-label="Diminuir DT">−</button><span>DT <b>${pad2(r.dt)}</b></span><button class="ed ed2" data-act="rdt" data-res="${key}" data-d="1" aria-label="Aumentar DT">+</button></span>
+        <span class="res-dt" title="${key === 'pv' ? 'DT do teste de Vigor ao chegar a 0 PV' : 'DT do teste de Disciplina ao chegar a 0 PD'}: começa em 7 e sobe +3 a cada teste"><button class="ed ed2" data-act="rdt" data-res="${key}" data-d="-1" aria-label="Diminuir DT">−</button><span>DT <b>${pad2(r.dt)}</b></span><button class="ed ed2" data-act="rdt" data-res="${key}" data-d="1" aria-label="Aumentar DT">+</button></span>
         <span class="res-num"><b>${r.cur}</b><small>/ <input type="number" class="maxin" data-max="${key}" min="1" max="99" value="${r.max}" aria-label="${label} máximo"></small></span></div>
       <div class="pips">${p}</div>
+      ${r.cur === 0 ? `<div class="zero"><span>${key === 'pv' ? 'Sem PV: a cada dano, teste de Vigor.' : 'Sem PD: a cada trauma, teste de Disciplina.'}</span><button class="btn zbtn ed" data-act="zero-test" data-res="${key}">${IC.die} ${key === 'pv' ? 'Vigor' : 'Disciplina'} · DT ${r.dt}</button><button class="qbtn" data-rules="ferimentos" aria-label="Regras de 0 PV e 0 PD">?</button></div>` : ''}
       <div class="ctrls ed">
         <button class="btn sq" data-act="delta" data-res="${key}" data-d="-1">−1</button>
         <button class="btn sq" data-act="delta" data-res="${key}" data-d="1">+1</button><span class="sep"></span>
@@ -209,15 +214,13 @@ export async function mount(root, { slug }, ctx) {
     return `<select class="dsel free bsel${v ? ' on' : ''}" data-mod="${k}" aria-label="Dado bônus"><option value="0"${!v ? ' selected' : ''}>—</option>${DICE.map((d) => `<option value="${d}"${v === d ? ' selected' : ''}>d${d}</option>`).join('')}</select>`;
   }
   function modsCard() {
-    const m = ui.mods, active = m.b1 || m.b2 || m.passo || m.pavorOn;
-    return `<section class="card mods${m.pavorOn ? ' pavor' : ''}${active ? ' active' : ''}"><div class="sec-h"><span class="tag">Modificadores</span><span class="hint">valem pras próximas rolagens de perícia</span>${active ? '<button class="link" data-act="mods-clear">zerar</button>' : ''}</div>
+    const m = ui.mods, active = m.b1 || m.b2 || m.passo;
+    return `<section class="card mods${active ? ' active' : ''}"><div class="sec-h"><span class="tag">Modificadores</span><span class="hint">valem pras próximas rolagens de perícia</span>${active ? '<button class="link" data-act="mods-clear">zerar</button>' : ''}<button class="qbtn" data-rules="dados" title="Como funcionam dados extras e passos" aria-label="Regras de dados extras e passos">?</button></div>
       <div class="mods-grid">
         <div class="mod"><span class="lb">Dados bônus</span><div class="mod-row">${bonusSel('b1')}<span class="plus">+</span>${bonusSel('b2')}</div></div>
         <div class="mod"><span class="lb">Passos da perícia</span><div class="stepper2"><button data-act="passo" data-d="-1" aria-label="Descer passo">−</button><b>${m.passo > 0 ? '+' : ''}${m.passo}</b><button data-act="passo" data-d="1" aria-label="Subir passo">+</button></div></div>
-        <div class="mod"><span class="lb">Dado de Pavor</span><div class="mod-row"><div class="stepper2"><button data-act="pavor-d" data-d="-1" aria-label="Dado de pavor menor">−</button><b>d${m.pavorD}</b><button data-act="pavor-d" data-d="1" aria-label="Dado de pavor maior">+</button></div>
-          <label class="chk"><input type="checkbox" class="free" id="pavor-on"${m.pavorOn ? ' checked' : ''}> Ativar</label></div></div>
       </div>
-      ${m.pavorOn ? '<p class="hint pav-hint">Pavor ativo: o dado de pavor anula seus dados que tirarem menos que ele.</p>' : ''}</section>`;
+      <p class="hint mods-h">Máx. 4 dados por teste, e só os 3 maiores somam. Ajuda de aliado = passos (perícia d6/d8: +1, d10/d12: +2).</p></section>`;
   }
   function skillsCard() {
     const list = P.skills.map((sk, i) => ({ sk, i }));
@@ -271,20 +274,21 @@ export async function mount(root, { slug }, ctx) {
         <button class="plusbtn ed ed2" data-act="${hab ? 'ab-add' : 'inv-add'}" aria-label="${hab ? 'Nova habilidade' : 'Novo equipamento'}" title="${hab ? 'Nova habilidade' : 'Novo equipamento'}">+</button></div>
       ${hab ? abilitiesList() : equipList()}</section>`;
   }
-  const dieClasses = (x) => `${x.x ? ' cancel' : ''}${x.k === 'bon' ? ' bonus' : ''}${x.k === 'pav' ? ' pavor' : ''}${x.neg ? ' neg' : ''}`;
-  const dieLabel = (x) => x.k === 'pav' ? 'pavor' : x.k === 'bon' ? `+d${x.d}` : `${x.neg ? '−' : ''}d${x.d}`;
-  const dieTitle = (x) => x.k === 'pav' ? `Dado de pavor: ${x.v}` : x.x ? `d${x.d} tirou ${x.v}, anulado pelo pavor` : `Rolou um d${x.d} e tirou ${x.v}`;
+  const dieClasses = (x) => `${x.x ? ' cancel' : ''}${x.k === 'bon' ? ' bonus' : ''}${x.neg ? ' neg' : ''}`;
+  const dieLabel = (x) => x.k === 'bon' ? `+d${x.d}` : `${x.neg ? '−' : ''}d${x.d}`;
+  const dieTitle = (x) => x.x ? `d${x.d} tirou ${x.v}, fora da soma (só os 3 maiores contam)` : `Rolou um d${x.d} e tirou ${x.v}`;
+  const rarb = (r) => r.ra != null ? `RA ${r.ra} · RB ${r.rb}` : '';
   const face = (x) => `<span class="face${dieClasses(x)}" data-d="${x.d}" data-v="${x.v}" title="${dieTitle(x)}"><small>${dieLabel(x)}</small><b>${x.v}</b></span>`;
   const pf = (r, big) => r.dt != null ? `<span class="pf ${r.ok ? 'ok' : 'no'}">${r.ok ? 'passou' : 'falhou'}${big ? ' · DT ' + r.dt : ''}</span>` : '';
   const critTag = (r) => r.crit ? `<span class="critb ${r.crit}">${r.crit === 'crit' ? 'Sucesso crítico' : 'Falha crítica'}</span>` : '';
   function rollsCard() {
     const tray = [4, 6, 8, 10, 12, 20].map((d) => `<button class="dicon" data-act="expr-add" data-d="${d}" title="Adicionar 1d${d}">${dieIcon(d)}<span>d${d}</span></button>`).join('');
-    const li = (r) => `<li class="${r.crit || ''}"><span class="h-t">${esc(r.t)}</span><span class="h-d">${r.dice.map(face).join('')}${r.mod ? `<span class="h-mod">${r.mod > 0 ? '+' : '−'}${Math.abs(r.mod)}</span>` : ''}</span>${r.dice.length > 1 || r.mod ? `<b class="h-s">${r.sum}</b>` : ''}${r.crit ? `<span class="critb sm ${r.crit}">${r.crit === 'crit' ? 'crítico' : 'falha crít.'}</span>` : ''}${pf(r)}</li>`;
-    return `<section class="card"><div class="sec-h"><span class="tag">Dados</span></div>
+    const li = (r) => `<li class="${r.crit || ''}"><span class="h-t">${esc(r.t)}${r.ra != null ? `<small>${rarb(r)}</small>` : ''}${r.fe ? `<small class="h-fe">${esc(r.fe)}</small>` : ''}</span><span class="h-d">${r.dice.map(face).join('')}${r.mod ? `<span class="h-mod">${r.mod > 0 ? '+' : '−'}${Math.abs(r.mod)}</span>` : ''}</span>${r.dice.length > 1 || r.mod ? `<b class="h-s">${r.sum}</b>` : ''}${r.crit ? `<span class="critb sm ${r.crit}">${r.crit === 'crit' ? 'crítico' : 'falha crít.'}</span>` : ''}${pf(r)}</li>`;
+    return `<section class="card"><div class="sec-h"><span class="tag">Dados</span><button class="qbtn" data-rules="testes" title="Como funciona um teste" aria-label="Regras de testes">?</button></div>
       <div class="dtray">${tray}</div>
       <form class="exprf" data-form="expr" autocomplete="off"><input class="field free" id="expr" placeholder="Rolar dados (ex.: 2d6+1)" value="${esc(ui.expr)}" spellcheck="false">
         ${ui.expr ? '<button type="button" class="x" data-act="expr-clear" aria-label="Limpar">×</button>' : ''}<button class="btn pri" type="submit">Rolar</button></form>
-      <label class="dt" title="Se preencher, compara o total dos testes de perícia com a DT">DT dos testes <input type="number" id="dt" value="${esc(ui.dt)}" placeholder="—" inputmode="numeric"></label>
+      <label class="dt" title="DT padrão do playtest é 7. Deixe vazio pra não comparar.">DT dos testes <input type="number" id="dt" value="${esc(ui.dt)}" placeholder="—" inputmode="numeric"></label>
       <ol class="hist">${ui.rolls.length ? ui.rolls.map(li).join('') : '<li class="empty">Toque no dado ao lado de uma perícia, ou monte uma rolagem acima.</li>'}</ol>
       ${ui.rolls.length ? '<button class="link" data-act="clear-rolls">limpar histórico</button>' : ''}</section>`;
   }
@@ -333,7 +337,7 @@ export async function mount(root, { slug }, ctx) {
         <textarea class="grow" data-list="priv:sessoes" data-id="${s.id}" data-field="text" placeholder="O que aconteceu, quem apareceu, pistas…" rows="3">${esc(s.text)}</textarea></article>`;
     }).join('');
     return `<div class="invest">
-      <section class="card"><div class="sec-h"><span class="tag">Pontos de interesse</span><button class="btn sm" data-act="pt-add">+ Nota</button></div>
+      <section class="card"><div class="sec-h"><span class="tag">Pontos de interesse</span><button class="qbtn" data-rules="investigacao" title="Ações de investigação" aria-label="Regras de investigação">?</button><button class="btn sm" data-act="pt-add">+ Nota</button></div>
         ${abas('paba', ui.pAba)}<div class="pts">${pts || '<p class="empty">Nenhuma nota nesta aba.</p>'}</div></section>
       <section class="card"><div class="sec-h"><span class="tag">Anotações</span><span class="hint">só você e o mestre veem</span></div>
         ${abas('naba', ui.nAba)}<textarea class="grow notes-ta" data-nota="${ui.nAba}" placeholder="Anote o necessário aqui." rows="10">${esc(V.notasAbas[ui.nAba] || '')}</textarea></section>
@@ -413,32 +417,47 @@ export async function mount(root, { slug }, ctx) {
   const setRes = (k, v) => {
     const r = P[k], from = r.cur;
     r.cur = Math.max(0, Math.min(r.max, v));
+    if (from === 0 && r.cur > 0) r.dt = 7; // saiu do 0: a DT volta ao começo
     if (r.cur !== from) ui.anim.push({ k, from, to: r.cur });
     commitPub();
     if (k === 'pv' && r.cur < from) hit(r.cur === 0 || from - r.cur >= 5 ? 2 : 1);
   };
   const persistRolls = () => ssSet('rolls', JSON.stringify(ui.rolls));
-  function finishRoll(r, test) {
-    const dt = parseInt(ui.dt, 10);
-    if (test && !isNaN(dt)) { r.dt = dt; r.ok = r.sum >= dt; }
+  function finishRoll(r, test, dtFix) {
+    const dt = dtFix != null ? dtFix : parseInt(ui.dt, 10);
+    if (test && !isNaN(dt)) { r.dt = dt; r.ok = r.crit === 'crit' ? true : r.crit === 'fumble' ? false : r.sum >= dt; }
+    if (r.crit === 'fumble') { const n = rnd(8); r.fe = `d8 = ${n} · ${FUMBLE[n - 1]}`; }
     ui.rolls.unshift(r); ui.rolls = ui.rolls.slice(0, 20); persistRolls(); render();
-    toast(`<div class="t-l">${esc(r.t)}</div><div class="t-d">${r.dice.map(face).join('')}${r.mod ? `<span class="h-mod big">${r.mod > 0 ? '+' : '−'}${Math.abs(r.mod)}</span>` : ''}</div>${r.dice.length > 1 || r.mod ? `<div class="t-s"><small>total</small><b>${r.sum}</b></div>` : ''}${critTag(r)}${pf(r, true)}`, { ms: 6500 });
+    toast(`<div class="t-l">${esc(r.t)}${r.ra != null ? `<small>${rarb(r)}</small>` : ''}</div><div class="t-d">${r.dice.map(face).join('')}${r.mod ? `<span class="h-mod big">${r.mod > 0 ? '+' : '−'}${Math.abs(r.mod)}</span>` : ''}</div>${r.dice.length > 1 || r.mod ? `<div class="t-s"><small>total</small><b>${r.sum}</b></div>` : ''}${critTag(r)}${pf(r, true)}${r.fe ? `<div class="t-fe">${esc(r.fe)}</div>` : ''}`, { ms: r.fe ? 9000 : 6500 });
     spinDice(document.querySelector('.toast'));
+    return r;
   }
-  // Teste de perícia: dado da perícia (com passos) + dado do atributo, + bônus, + pavor
-  function rollSkill(i) {
-    const sk = P.skills[i]; if (!sk) return;
+  // Teste de perícia (Playtest Alpha v1.1): dado da perícia (com passos) + dado do atributo + dados bônus.
+  // Máx. 4 dados rolados, só os 3 maiores somam. Crítico: 2+ dados iguais com valor >= 6. Falha crítica: todos 1.
+  function rollSkill(i, o = {}) {
+    const sk = P.skills[i]; if (!sk) return null;
     const m = ui.mods, sd = stepDie(sk.d, m.passo), ad = P.attrs[sk.a] || 4;
-    const main = [{ d: sd, v: rnd(sd), k: 'per' }, { d: ad, v: rnd(ad), k: 'atr' }];
-    const bonus = [m.b1, m.b2].filter(Boolean).map((d) => ({ d, v: rnd(d), k: 'bon' }));
-    let pav = null;
-    if (m.pavorOn) { pav = { d: m.pavorD, v: rnd(m.pavorD), k: 'pav' }; main.forEach((x) => { if (x.v < pav.v) x.x = true; }); }
-    const sum = main.reduce((s, x) => s + (x.x ? 0 : x.v), 0) + bonus.reduce((s, x) => s + x.v, 0);
+    const dice = [{ d: sd, v: rnd(sd), k: 'per' }, { d: ad, v: rnd(ad), k: 'atr' },
+      ...[m.b1, m.b2].filter(Boolean).map((d) => ({ d, v: rnd(d), k: 'bon' }))].slice(0, 4);
+    if (dice.length > 3) { let lo = 0; dice.forEach((x, j) => { if (x.v < dice[lo].v) lo = j; }); dice[lo].x = true; }
+    const vals = dice.map((x) => x.v);
+    const sum = dice.reduce((t, x) => t + (x.x ? 0 : x.v), 0);
     let crit = null;
-    if (!main[0].x && !main[1].x && main[0].v === main[1].v && main[0].v > 6) crit = 'crit';
-    else if ((main[0].v === 1 && main[1].v === 1) || (main[0].x && main[1].x)) crit = 'fumble';
+    if (vals.every((v) => v === 1)) crit = 'fumble';
+    else if (vals.some((v, j) => v >= 6 && vals.indexOf(v) !== j)) crit = 'crit';
     const tag = m.passo ? ` ${m.passo > 0 ? '▲' : '▼'}${Math.abs(m.passo)}` : '';
-    finishRoll({ t: sk.n + tag, dice: [...main, ...bonus, ...(pav ? [pav] : [])], sum, crit }, true);
+    return finishRoll({ t: (o.label || sk.n) + tag, dice, sum, crit, ra: Math.max(...vals), rb: Math.min(...vals) }, true, o.dt);
+  }
+  // 0 PV → Vigor / 0 PD → Disciplina, DT 7 e +3 por teste já feito
+  function zeroTest(key) {
+    const want = key === 'pv' ? 'vigor' : 'disciplina';
+    const i = P.skills.findIndex((x) => norm(x.n) === want);
+    if (i < 0) { say(`Não achei a perícia ${want} na ficha.`, true); return; }
+    const dt = P[key].dt || 7;
+    const r = rollSkill(i, { dt, label: key === 'pv' ? 'Vigor (0 PV)' : 'Disciplina (0 PD)' });
+    if (!r) return;
+    P[key].dt = dt + 3; commitPub();
+    if (!r.ok) setTimeout(() => say(key === 'pv' ? 'Falhou no Vigor: pela regra, o personagem morre.' : 'Falhou na Disciplina: colapso mental, o personagem morre.', true), 6600);
   }
   function rollExpr() {
     const r = rollExpression(ui.expr, rnd);
@@ -452,6 +471,7 @@ export async function mount(root, { slug }, ctx) {
     ui.expr = parts.join('+'); ssSet('expr', ui.expr); render();
   }
   const find = (arr, id) => arr.find((x) => x.id === id);
+  const norm = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const focusSel = (sel) => setTimeout(() => { const n = root.querySelector(sel); if (n) n.focus(); }, 0);
 
   async function onClick(e) {
@@ -481,7 +501,7 @@ export async function mount(root, { slug }, ctx) {
       }
       case 'pip': { const i = +d.i; setRes(d.res, P[d.res].cur === i + 1 ? i : i + 1); break; }
       case 'full': setRes(d.res, P[d.res].max); break;
-      case 'rdt': P[d.res].dt = Math.max(1, Math.min(30, (P[d.res].dt || 7) + (+d.d))); commitPub(); break;
+      case 'rdt': P[d.res].dt = Math.max(7, Math.min(40, (P[d.res].dt || 7) + 3 * (+d.d))); commitPub(); break;
       case 'armor': P.armor = Math.max(0, Math.min(99, (P.armor || 0) + (+d.d))); commitPub(); break;
       case 'lvl': P.nivel = Math.max(1, Math.min(20, (P.nivel || 1) + (+d.d))); commitPub(); break;
       case 'attr-step': P.attrs[d.id] = stepDie(P.attrs[d.id], +d.d); commitPub(); break;
@@ -491,8 +511,8 @@ export async function mount(root, { slug }, ctx) {
       case 'expr-clear': ui.expr = ''; ssSet('expr', ''); render(); focusSel('#expr'); break;
       case 'clear-rolls': ui.rolls = []; persistRolls(); render(); break;
       case 'passo': ui.mods.passo = Math.max(-4, Math.min(4, ui.mods.passo + (+d.d))); saveMods(); render(); break;
-      case 'pavor-d': ui.mods.pavorD = stepDie(ui.mods.pavorD, +d.d); saveMods(); render(); break;
-      case 'mods-clear': ui.mods = { b1: 0, b2: 0, passo: 0, pavorD: 6, pavorOn: false }; saveMods(); render(); break;
+      case 'zero-test': zeroTest(d.res); break;
+      case 'mods-clear': ui.mods = { b1: 0, b2: 0, passo: 0 }; saveMods(); render(); break;
       case 'sort': ui.sort = d.s; ssSet('sort', ui.sort); render(); break;
       // retrato
       case 'portrait': {
@@ -614,7 +634,6 @@ export async function mount(root, { slug }, ctx) {
   function onChange(e) {
     const t = e.target; if (!root.contains(t)) return;
     if (t.dataset.mod) { ui.mods[t.dataset.mod] = +t.value; saveMods(); render(); return; }
-    if (t.id === 'pavor-on') { ui.mods.pavorOn = t.checked; saveMods(); render(); return; }
     if (!role) return;
     if (t.dataset.themeInput != null) { P.theme = t.value; commitPub(); return; }
     if (t.dataset.sel === 'attr') { P.attrs[t.dataset.id] = +t.value; commitPub(); return; }
