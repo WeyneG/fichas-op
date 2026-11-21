@@ -988,3 +988,25 @@ body.rules-open{overflow:hidden}
   .rules-pan{width:100%;border-left:0}
   .mods-grid{grid-template-columns:1fr}
 }
+
+/* =====================================================================
+   ABERTURA DA FICHA — "acessando arquivo"
+   ===================================================================== */
+.opening{position:fixed;inset:0;z-index:95;display:grid;place-items:center;background:radial-gradient(ellipse at center,#101214 0,#060708 70%);cursor:pointer;transition:opacity .4s,clip-path .45s cubic-bezier(.7,0,.3,1);clip-path:inset(0 0 0 0)}
+.opening.out{opacity:0;clip-path:inset(50% 0 50% 0)}
+.op-in{display:grid;justify-items:center;gap:10px;font-family:"Special Elite",ui-monospace,monospace;color:#cfd3d8;letter-spacing:.14em;text-align:center;padding:20px}
+.op-logo{width:64px;height:104px;background:var(--acc-text);-webkit-mask:url(/img/logo.png) center/contain no-repeat;mask:url(/img/logo.png) center/contain no-repeat;margin-bottom:10px;animation:opPulse 1.4s ease-in-out infinite;filter:drop-shadow(0 0 14px rgba(var(--acc-rgb),.5))}
+@keyframes opPulse{50%{opacity:.55}}
+.op-l{margin:0;min-height:1.4em;font-size:15px}
+.op-l1{color:#8e949b;font-size:12.5px}
+.op-l:not(:empty)::after{content:"▌";animation:blink .7s steps(1) infinite;margin-left:2px;color:var(--acc-text)}
+.op-l1:not(:empty)::after{content:none}
+.opening.done .op-l2::after{content:none}
+@keyframes blink{50%{opacity:0}}
+.op-bar{width:220px;height:2px;background:rgba(255,255,255,.1);margin-top:10px;overflow:hidden}
+.op-bar i{display:block;height:100%;width:0;background:var(--acc);box-shadow:0 0 10px rgba(var(--acc-rgb),.8);animation:opBar 1.5s .25s cubic-bezier(.4,.1,.2,1) forwards}
+@keyframes opBar{to{width:100%}}
+.op-ok{margin:6px 0 0;font-family:Oswald;letter-spacing:.3em;font-size:13px;color:var(--acc-text);opacity:0;transition:opacity .25s}
+.opening.done .op-ok{opacity:1;transition-delay:.5s}
+
+@media (prefers-reduced-motion:reduce){.opening{display:none}}

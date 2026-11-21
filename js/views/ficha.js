@@ -2,7 +2,7 @@
 import { ATTRS, DICE, uid, normPublic, normPrivate } from '../data.js';
 import { auth, msgOf } from '../store.js';
 import { esc, IC, dieSel, autosize, autosizeAll, rnd, today, toast, say, resizeImage, pickFile, download, pinForm, themePicker, dieIcon, rollExpression } from '../ui.js';
-import { hit, lowHp, spinDice } from '../fx.js';
+import { hit, lowHp, spinDice, fxEnabled } from '../fx.js';
 
 // Ações que precisam do PIN
 const EDIT_ACTS = new Set(['delta', 'amt', 'pip', 'full', 'lvl', 'portrait', 'portrait-remove', 'ab-use', 'ab-edit', 'ab-save',
@@ -320,6 +320,33 @@ export async function mount(root, { slug }, ctx) {
   }
   const ta = (key, ph, cls = '') => `<textarea class="grow ${cls}" data-bind="priv:${key}" placeholder="${esc(ph)}" rows="2">${esc(V[key])}</textarea>`;
   const abas = (act, cur) => `<div class="abas">${[0, 1, 2, 3].map((i) => `<button class="aba${cur === i ? ' on' : ''}" data-act="${act}" data-i="${i}">Aba ${i + 1}</button>`).join('')}</div>`;
+  // ---------- abertura: "acessando arquivo" (1x por sessão, só com efeitos ligados) ----------
+  const fileNo = () => String([...slug].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9000, 7) + 1000);
+  function opening() {
+    if (!fxEnabled() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (ss('opened')) return;
+    ssSet('opened', '1');
+    const el = document.createElement('div');
+    el.className = 'opening';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = `<div class="op-in"><span class="op-logo"></span>
+      <p class="op-l op-l1"></p><p class="op-l op-l2"></p>
+      <div class="op-bar"><i></i></div><p class="op-ok">ACESSO LIBERADO</p></div>`;
+    document.body.appendChild(el);
+    const lines = [[el.querySelector('.op-l1'), `ORDO REALITAS // ARQUIVO Nº ${fileNo()}`], [el.querySelector('.op-l2'), `ACESSANDO: AGENTE ${(P.name || '—').toUpperCase()}`]];
+    let li = 0, ci = 0;
+    const tick = setInterval(() => {
+      const [node, txt] = lines[li];
+      ci++; node.textContent = txt.slice(0, ci);
+      if (ci >= txt.length) { li++; ci = 0; if (li >= lines.length) { clearInterval(tick); el.classList.add('done'); } }
+    }, 22);
+    let gone = false;
+    const close = () => { if (gone) return; gone = true; clearInterval(tick); clearTimeout(t); el.classList.add('out'); setTimeout(() => el.remove(), 450); };
+    const t = setTimeout(close, 2100);
+    el.addEventListener('click', close);
+    closeOpening = close;
+  }
+  let closeOpening = () => {};
   function investView() {
     if (!role || !V) return lockedPrivate();
     const pts = V.pontos.filter((p) => (p.aba || 0) === ui.pAba).map((p) => {
@@ -659,12 +686,14 @@ export async function mount(root, { slug }, ctx) {
   root.addEventListener('change', onChange);
   root.addEventListener('keydown', onKey);
   window.addEventListener('resize', onResize);
+  ctx.setAccent(P.theme);
+  opening();
   render();
   loadEnc();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => autosizeAll(root));
 
   return () => {
-    flushAll(); unsub(); unsubMesa(); clearTimeout(encT); lowHp(false);
+    flushAll(); unsub(); unsubMesa(); clearTimeout(encT); lowHp(false); closeOpening();
     window.removeEventListener('pagehide', flushAll);
     window.removeEventListener('resize', onResize);
     root.removeEventListener('click', onClick); root.removeEventListener('submit', onSubmit);
